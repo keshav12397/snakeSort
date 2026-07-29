@@ -1,0 +1,4 @@
+*.bin
+*.pyc
+*.ipynb
+__pycache__/
