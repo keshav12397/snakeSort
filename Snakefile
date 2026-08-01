@@ -95,12 +95,15 @@ rule runCatGT:
 
         touch {output.flag}
         '''
-
-
-
-
+def get_pass1_flags(wildcards):
+    runs = getRunsForBird(wildcards.bird)
+    return expand(
+        f"{workingDir}/pass_1/{{bird}}/{{run}}/pass_1done",
+        bird=wildcards.bird, run=runs
+    )
 rule makeSupercat:
     input:
+        flags = 
 
 # rule backupRawData:
 #     ##nothing will the touch the raw data its now safe to back up to aws 
