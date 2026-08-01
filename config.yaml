@@ -1,0 +1,5 @@
+birdList:
+  - "Rose60_small"
+  # - "fakebird"
+workingDir: "/mnt/work0/kbsuresh"
+rigDir: "/mnt/ks_rig"
