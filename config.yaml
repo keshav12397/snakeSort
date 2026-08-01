@@ -1,5 +1,13 @@
-birdList:
-  - "Rose60_small"
-  # - "fakebird"
+birdName: "Rose60_small"
 workingDir: "/mnt/work0/kbsuresh"
 rigDir: "/mnt/ks_rig"
+
+catGTparams:
+  CATGTPATH: "./CatGT-linux/runit.sh" # local path sure hope that doesnt cause issues
+  filtmode: "gblcar"
+  apfilter: "butter,12,300,9000"
+  zerofillmax: "5"
+  sepShanks: False
+
+
+

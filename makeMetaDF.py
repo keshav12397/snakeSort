@@ -57,7 +57,6 @@ def get_day(name):
     whole = match.group(1)
     frac = match.group(2) if match.group(2) is not None else "0"
     return f"{whole}.{frac}"
-
 def makeMetaDF(animalDir):
         
     requiredMetaKeys = ['fileSHA1', 'fileSizeBytes', 'fileTimeSecs','fileCreateTime','firstSample'] #bad files miss these fields idk
