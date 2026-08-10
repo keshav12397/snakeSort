@@ -1,9 +1,10 @@
-birdName: "Rose60_small"
+birdName: "Lav69"
 workingDir: "/mnt/work0/kbsuresh"
-rigDir: "/mnt/ks_rig"
+rigDir: "ksrig:ks_rig"
+
 
 catGTparams:
-  CATGTPATH: "./CatGT-linux/runit.sh" # local path sure hope that doesnt cause issues
+  CATGTPATH: "/home/kbsuresh/snakeSort/CatGT-linux/runit.sh" # abs path
   filtmode: "gblcar"
   apfilter: "butter,12,300,9000"
   zerofillmax: "5"

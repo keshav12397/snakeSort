@@ -1,5 +1,6 @@
 
 import argparse
+import json
 import pandas as pd
 from pathlib import Path
 import numpy as np
@@ -9,10 +10,17 @@ import spikeinterface.preprocessing as spre
 
 
 
-def getBadChansSI(runDir ,s,nSlices = 1,sliceSecs = 5):
-    #print('Finding bad Channels')
+def getBadChansSI(runDir,s,nSlices = 1,sliceSecs = 5):
+    #bad channels shouldn't vary across runs for the same bird/stream, so compute
+    #once per bird and reuse the cached result on every later call (incl. later
+    #dredge/kilosort steps) instead of re-running detect_bad_channels each time.
+    badchans_path = runDir / f"imec{s}_bad_channels.json"
+    if badchans_path.exists():
+        cached = json.loads(badchans_path.read_text())
+        return cached["badIDs"], cached["badidx"], cached["catGTBad"]
+
     allIMdirs =  [p for p in runDir.rglob("*") if p.is_dir() and p.name.endswith(f'imec{s}')]
-    #print(allIMdirs)
+    
     streamID = f'imec{s}.ap'
     listofrecs = []
     for thing in allIMdirs:
@@ -20,7 +28,7 @@ def getBadChansSI(runDir ,s,nSlices = 1,sliceSecs = 5):
             listofrecs.append(se.read_spikeglx(folder_path=thing,stream_id=streamID))
         except:
             print('failed',thing)
-    fullrec =  si.concatenate_recordings(listofrecs)
+    fullrec =  si.concatenate_recordings(listofrecs) #there must be a better way to do this instead of concatenating everything 
     time_vec = fullrec.get_times()
     kms = np.arange(time_vec.min(),time_vec.max()-sliceSecs,sliceSecs)
     getStarts = np.random.choice(kms,size  = min(nSlices,len(kms)), replace=False)
@@ -31,8 +39,19 @@ def getBadChansSI(runDir ,s,nSlices = 1,sliceSecs = 5):
     delStr =  f'{streamID}#AP'
     badnumbers = sorted([int(x.replace(delStr,'')) for x in badIDs])
     ##format string as catgt expects 
-    catGTBad = f"{{{s};{','.join(str(x) for x in badnumbers)}}}"
-    
+    if len(badnumbers)>0:
+        catGTBad = f"{{{s};{','.join(str(x) for x in badnumbers)}}}"
+    else:
+        catGTBad =" " #empty string
+
+    #persist so later calls (this bird/stream, or later dredge/kilosort steps)
+    #can read these back in instead of recomputing
+    badchans_path.write_text(json.dumps({
+        "badIDs": np.asarray(badIDs).tolist(),
+        "badidx": np.asarray(badidx).tolist(),
+        "catGTBad": catGTBad,
+    }))
+
     return badIDs,badidx,catGTBad
 
 
@@ -57,7 +76,6 @@ def main():
     gtlist = "".join(parts)
 
     #look at meta columns to get possible stream names 
-
     possible_streams = set([int(x.split('_')[0].replace("imec","")) for x in run_df.columns if "imec" in x])
     possible_streams = sorted(possible_streams)
 

@@ -26,7 +26,7 @@ def readMeta(binFullPath):
         print("no meta file")
     return(metaDict)
 
-def get_GTS(filename):
+def get_GTS_IM(filename):
     '''
     Given a typical imec ap bin get the g, t, and imec idx
     '''
@@ -36,6 +36,7 @@ def get_GTS(filename):
 
     g_val, t_val, imec_val = match.groups()
     return int(g_val), int(t_val), int(imec_val)
+
 def get_GT_NI(filename):
     '''
     Given a typical nidqbin get the g and t index
@@ -46,7 +47,7 @@ def get_GT_NI(filename):
 
     g_val, t_val  = match.groups()
     return int(g_val), int(t_val)
-def get_day(name):
+def get_day(name): ## TODO come up w some smarter way to make another grouping variable flexible? or a way to drop it in somehow idk 
     '''
     Extract the day value after _d as an X.Y string, defaulting to X.0 if no decimal present
     '''
@@ -80,7 +81,7 @@ def makeMetaDF(animalDir):
                 if fileTimesec<minFileTimeSec:
                     print(f'Skipping {file}, file too short')
 
-                g_ind, t_ind, stream_ind  = get_GTS(file)
+                g_ind, t_ind, stream_ind  = get_GTS_IM(file)
                 stream_ind = f'imec{stream_ind}'
                 toremove  = f'_g{g_ind}_t{t_ind}.{stream_ind}.ap.bin'
 
