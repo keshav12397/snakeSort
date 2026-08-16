@@ -9,12 +9,12 @@ from spikeinterface.sortingcomponents.motion import interpolate_motion
 from kilosort import run_kilosort
 import kilosort.io as ksio
 
-from make_DredgeFiles import loadBadChanIDs
+from make_DredgeFiles import loadBadChanIDs, findImecDir
 
 
-def runKilosort4_KS(imecDir, streamID, outDir):
-    imecDir = Path(imecDir)
+def runKilosort4_KS(streamID, outDir):
     outDir = Path(outDir)
+    imecDir = findImecDir(outDir, streamID)
 
     #produced by make_DredgeFiles.py's calcPeaksSI
     motion_path = outDir / f'imec{streamID}_full_motion.p'
@@ -80,12 +80,11 @@ def runKilosort4_KS(imecDir, streamID, outDir):
 
 def main():
     parser = argparse.ArgumentParser(description='given a stream ID, run kilosort4 on the motion-corrected recording')
-    parser.add_argument('--imecDir', type=Path, required=True)
     parser.add_argument('--streamID', type=str, required=True)
     parser.add_argument('--outDir', type=Path, required=True)
     args = parser.parse_args()
 
-    runKilosort4_KS(args.imecDir, args.streamID, args.outDir)
+    runKilosort4_KS(args.streamID, args.outDir)
 
 
 if __name__ == "__main__":

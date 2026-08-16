@@ -1,6 +1,5 @@
 configfile: "config.yaml"
 import pandas as pd
-from pathlib import Path
 
 
 bird = config['birdName'] 
@@ -46,6 +45,7 @@ rule transferFiles:
 checkpoint makeMetaDf:
     input:
         flag = f"{workingDir}/rawData/{{bird}}/transfer_done",
+        script = "make_MetaDF.py",
     output:
         metadf =  f"{workingDir}/rawData/{{bird}}/metaDF.csv"
     params:
@@ -62,7 +62,8 @@ def getRunsForBird(bird):
 
 rule runCatGT:
     input:
-       metadf = f"{workingDir}/rawData/{{bird}}/metaDF.csv"
+       metadf = f"{workingDir}/rawData/{{bird}}/metaDF.csv",
+       script = "make_CatGT_args.py",
     params:
         catgtpath = config['catGTparams']['CATGTPATH'],
         startdir = f"{workingDir}/rawData/{{bird}}",
@@ -160,7 +161,8 @@ def get_stream_ids(wildcards):
 
 rule runSupercat:
     input:
-        flags = get_pass1_flags
+        flags = get_pass1_flags,
+        script = "make_SuperCat_args.py",
     output:
         flag = f"{workingDir}/pass_2/{{bird}}/supercat_done"
     params:
@@ -215,13 +217,6 @@ rule backupAndDeleteData:
         '''
         #"rm -r {workingD}"
 
-def get_imec_dir(wildcards):
-    #mirrors getBadChansSI's own directory discovery in make_CatGT_args.py -
-    #don't hardcode supercat's folder-naming, just find the imec{stream} dir
-    pass2dir = Path(f"{workingDir}/pass_2/{wildcards.bird}")
-    matches = [p for p in pass2dir.rglob("*") if p.is_dir() and p.name.endswith(f"imec{wildcards.stream}")]
-    return matches[0]
-
 def get_bad_chans_path(wildcards):
     #getBadChansSI (make_CatGT_args.py) echoes its cached bad-channels json here
     return f"{workingDir}/pass_2/{wildcards.bird}/imec{wildcards.stream}_bad_channels.json"
@@ -235,12 +230,9 @@ def get_dredge_flags(wildcards):
 
 rule doDredge:
     input:
-        flag = f"{workingDir}/pass_2/{{bird}}/supercat_done"
+        flag = f"{workingDir}/pass_2/{{bird}}/supercat_done",
+        script = "make_DredgeFiles.py",
     params:
-        #imecDir is only where the recording itself is read from - it can't be an
-        #output path since Snakemake needs output resolvable from wildcards alone,
-        #not by globbing the filesystem
-        imecDir = get_imec_dir,
         badChansPath = get_bad_chans_path,
         outDir = f"{workingDir}/pass_2/{{bird}}",
     output:
@@ -250,7 +242,7 @@ rule doDredge:
     shell:
         '''
         set -euo pipefail
-        python make_DredgeFiles.py --imecDir {params.imecDir} --streamID {wildcards.stream} --badChansPath {params.badChansPath} --outDir {params.outDir} > {log} 2>&1
+        python make_DredgeFiles.py --streamID {wildcards.stream} --badChansPath {params.badChansPath} --outDir {params.outDir} > {log} 2>&1
         '''
 
 def get_kilosort_flags(wildcards):
@@ -262,9 +254,11 @@ def get_kilosort_flags(wildcards):
 
 rule runKilosort:
     input:
-        motion = f"{workingDir}/pass_2/{{bird}}/imec{{stream}}_full_motion.p"
+        motion = f"{workingDir}/pass_2/{{bird}}/imec{{stream}}_full_motion.p",
+        #runKilosort.py imports loadBadChanIDs from make_DredgeFiles.py, so a
+        #change to either script should count as staleness here too
+        scripts = ["runKilosort.py", "make_DredgeFiles.py"],
     params:
-        imecDir = get_imec_dir,
         outDir = f"{workingDir}/pass_2/{{bird}}",
     output:
         flag = f"{workingDir}/pass_2/{{bird}}/imec{{stream}}_ksdone"
@@ -273,7 +267,7 @@ rule runKilosort:
     shell:
         '''
         set -euo pipefail
-        python runKilosort.py --imecDir {params.imecDir} --streamID {wildcards.stream} --outDir {params.outDir} > {log} 2>&1
+        python runKilosort.py --streamID {wildcards.stream} --outDir {params.outDir} > {log} 2>&1
         touch {output.flag}
         '''
 

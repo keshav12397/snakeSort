@@ -21,6 +21,15 @@ def loadBadChanIDs(badChansPath):
     return json.loads(Path(badChansPath).read_text())["badIDs"]
 
 
+def findImecDir(outDir, streamID):
+    #mirrors getBadChansSI's own directory discovery in make_CatGT_args.py -
+    #done here at actual run time (not as a Snakemake params function) since
+    #supercat's output folder-naming isn't worth hardcoding, and this dir may not
+    #exist yet when Snakemake evaluates params during DAG-building
+    matches = [p for p in Path(outDir).rglob("*") if p.is_dir() and p.name.endswith(f"imec{streamID}")]
+    return matches[0]
+
+
 def getPeakFallOff(peaks, fs, peak_locs, bin_sec=3, n_depth_bins=5, ignore_um=150):
     peakTimes = peaks['sample_index'] / fs
     max_sec = peakTimes.max()
@@ -35,9 +44,9 @@ def getPeakFallOff(peaks, fs, peak_locs, bin_sec=3, n_depth_bins=5, ignore_um=15
     return binned_z, t_edges, d_edges
 
 
-def calcPeaksSI(imecDir, streamID, badChansPath, outDir):
-    imecDir = Path(imecDir)
+def calcPeaksSI(streamID, badChansPath, outDir):
     outDir = Path(outDir)
+    imecDir = findImecDir(outDir, streamID)
     rec = se.read_spikeglx(imecDir, stream_id=f'imec{streamID}.ap')
 
     badChans = loadBadChanIDs(badChansPath)
@@ -119,13 +128,12 @@ def calcPeaksSI(imecDir, streamID, badChansPath, outDir):
 
 def main():
     parser = argparse.ArgumentParser(description='given a stream ID, detect+localize peaks w/ SI, and make dredge motion estimate')
-    parser.add_argument('--imecDir', type=Path, required=True)
     parser.add_argument('--streamID', type=str, required=True)
     parser.add_argument('--badChansPath', type=Path, required=True)
     parser.add_argument('--outDir', type=Path, required=True)
     args = parser.parse_args()
 
-    calcPeaksSI(args.imecDir, args.streamID, args.badChansPath, args.outDir)
+    calcPeaksSI(args.streamID, args.badChansPath, args.outDir)
 
 
 if __name__ == "__main__":
