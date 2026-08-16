@@ -1,0 +1,6 @@
+snakemake>=8
+pandas>=2
+numpy>=1.26
+matplotlib>=3.8
+spikeinterface[full]~=0.104.8
+kilosort~=4.1.7

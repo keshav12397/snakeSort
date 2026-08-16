@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "snakesort"
+version = "0.1.0"
+description = "Snakemake pipeline for Neuropixels preprocessing: rig transfer -> CatGT -> supercat -> dredge motion estimation -> Kilosort4"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "snakemake>=8",
+    "pandas>=2",
+    "numpy>=1.26",
+    "matplotlib>=3.8",
+    "spikeinterface[full]~=0.104.8",
+    "kilosort~=4.1.7",
+]
+
+[tool.setuptools]
+py-modules = [
+    "make_CatGT_args",
+    "make_DredgeFiles",
+    "make_MetaDF",
+    "make_SuperCat_args",
+    "runKilosort",
+]

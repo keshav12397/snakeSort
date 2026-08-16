@@ -1,0 +1,16 @@
+Metadata-Version: 2.4
+Name: snakesort
+Version: 0.1.0
+Summary: Snakemake pipeline for Neuropixels preprocessing: rig transfer -> CatGT -> supercat -> dredge motion estimation -> Kilosort4
+Requires-Python: >=3.11
+Description-Content-Type: text/markdown
+Requires-Dist: snakemake>=8
+Requires-Dist: pandas>=2
+Requires-Dist: numpy>=1.26
+Requires-Dist: matplotlib>=3.8
+Requires-Dist: spikeinterface[full]~=0.104.8
+Requires-Dist: kilosort~=4.1.7
+
+###
+TODO push my spike sorting processesing thing into this 
+![alt text](action_potential_snake_topdown_v2.png)

@@ -1,0 +1,12 @@
+README.md
+make_CatGT_args.py
+make_DredgeFiles.py
+make_MetaDF.py
+make_SuperCat_args.py
+pyproject.toml
+runKilosort.py
+snakesort.egg-info/PKG-INFO
+snakesort.egg-info/SOURCES.txt
+snakesort.egg-info/dependency_links.txt
+snakesort.egg-info/requires.txt
+snakesort.egg-info/top_level.txt
