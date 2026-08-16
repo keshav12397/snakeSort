@@ -1,26 +1,31 @@
 configfile: "config.yaml"
 import pandas as pd
+from pathlib import Path
 
 
 bird = config['birdName'] 
 workingDir = config['workingDir']
 rigDir = config['rigDir']
 
-def checkInputJSON(configfile):
+#def checkInputJSON(configfile):
 
 
-def all_catgt_targets(wildcards):
-    targets = []
-    runs = getRunsForBird(bird)
-    targets += expand(
-        f"{workingDir}/pass_1/{{bird}}/{{bird}}_{{run}}_pass1done",
-        bird=bird, run=runs
-    )
-    return targets
+def all_targets(wildcards):
+    #wildcards is unused - rule all has none, bird is pinned by config - but Snakemake
+    #input-functions must accept one. Deferred like this (rather than called directly
+    #in rule all's input) so it runs during DAG-building, after get_stream_ids_for_bird
+    #and the makeMetaDf checkpoint it depends on are actually defined.
+    return [
+        f"{workingDir}/pass_2/{bird}/awsdone",
+        *expand(
+            f"{workingDir}/pass_2/{bird}/imec{{stream}}_ksdone",
+            stream=get_stream_ids_for_bird(bird).split(",")
+        )
+    ]
 
 rule all:
     input:
-        f"{workingDir}/pass_2/{bird}/awsdone"
+        all_targets
 
 
 
@@ -135,12 +140,12 @@ def get_probes_for_bird(bird):
     )
     return sorted(possible_streams)
 
-def get_stream_ids(wildcards):
+def get_stream_ids_for_bird(bird):
     #mirrors the -sepShanks stream-numbering runCatGT does in its shell block (same
     #(p+1)*100 + shank formula), computed here at DAG-build time so it can feed
     #params.streamIDs without waiting on runCatGT's stream_ids.txt to exist.
     #this same list is what future per-stream rules (dredge/kilosort/etc) will fan out over.
-    probes = get_probes_for_bird(wildcards.bird)
+    probes = get_probes_for_bird(bird)
     if config['catGTparams'].get('sepShanks', True):
         streams = []
         for p in probes:
@@ -149,6 +154,9 @@ def get_stream_ids(wildcards):
     else:
         streams = probes
     return ",".join(str(s) for s in streams)
+
+def get_stream_ids(wildcards):
+    return get_stream_ids_for_bird(wildcards.bird)
 
 rule runSupercat:
     input:
@@ -193,9 +201,9 @@ rule runSupercat:
         '''
 
 rule backupAndDeleteData:
-    ##nothing will the touch the raw data its now safe to transfer and delete pass 1 
+    #nothing will the touch the raw data its now safe to transfer and delete pass 1 
     input:
-        flag = f"{workingDir}/pass_2/{bird}/supercat_done" #"{workingDIR}/pass_supercat/{BIRD}/catgtdone"
+        flag = f"{workingDir}/pass_2/{bird}/supercat_done" 
     output:
         flag = f"{workingDir}/pass_2/{bird}/awsdone"
     log:
@@ -204,16 +212,70 @@ rule backupAndDeleteData:
         '''
         aws s3 sync {workingDir}/rawData/{bird}  $(cat /home/kbsuresh/.aws/addr)/NpxRawRecordings/{bird}/ --storage-class DEEP_ARCHIVE --size-only --no-progress |& tee -a {log}
         touch {output.flag}
-        rm -r 
         '''
         #"rm -r {workingD}"
 
+def get_imec_dir(wildcards):
+    #mirrors getBadChansSI's own directory discovery in make_CatGT_args.py -
+    #don't hardcode supercat's folder-naming, just find the imec{stream} dir
+    pass2dir = Path(f"{workingDir}/pass_2/{wildcards.bird}")
+    matches = [p for p in pass2dir.rglob("*") if p.is_dir() and p.name.endswith(f"imec{wildcards.stream}")]
+    return matches[0]
+
+def get_bad_chans_path(wildcards):
+    #getBadChansSI (make_CatGT_args.py) echoes its cached bad-channels json here
+    return f"{workingDir}/pass_2/{wildcards.bird}/imec{wildcards.stream}_bad_channels.json"
+
+def get_dredge_flags(wildcards):
+    streams = get_stream_ids(wildcards).split(",")
+    return expand(
+        f"{workingDir}/pass_2/{{bird}}/imec{{stream}}_full_motion.p",
+        bird=wildcards.bird, stream=streams
+    )
+
 rule doDredge:
-   input:
+    input:
+        flag = f"{workingDir}/pass_2/{{bird}}/supercat_done"
+    params:
+        #imecDir is only where the recording itself is read from - it can't be an
+        #output path since Snakemake needs output resolvable from wildcards alone,
+        #not by globbing the filesystem
+        imecDir = get_imec_dir,
+        badChansPath = get_bad_chans_path,
+        outDir = f"{workingDir}/pass_2/{{bird}}",
+    output:
+        motion = f"{workingDir}/pass_2/{{bird}}/imec{{stream}}_full_motion.p"
+    log:
+        f"{workingDir}/logs/{{bird}}_imec{{stream}}_dredge.log"
+    shell:
+        '''
+        set -euo pipefail
+        python make_DredgeFiles.py --imecDir {params.imecDir} --streamID {wildcards.stream} --badChansPath {params.badChansPath} --outDir {params.outDir} > {log} 2>&1
+        '''
 
-# rule DoKilosort:
+def get_kilosort_flags(wildcards):
+    streams = get_stream_ids(wildcards).split(",")
+    return expand(
+        f"{workingDir}/pass_2/{{bird}}/imec{{stream}}_ksdone",
+        bird=wildcards.bird, stream=streams
+    )
 
-# rule DoDartsort:
+rule runKilosort:
+    input:
+        motion = f"{workingDir}/pass_2/{{bird}}/imec{{stream}}_full_motion.p"
+    params:
+        imecDir = get_imec_dir,
+        outDir = f"{workingDir}/pass_2/{{bird}}",
+    output:
+        flag = f"{workingDir}/pass_2/{{bird}}/imec{{stream}}_ksdone"
+    log:
+        f"{workingDir}/logs/{{bird}}_imec{{stream}}_kilosort.log"
+    shell:
+        '''
+        set -euo pipefail
+        python runKilosort.py --imecDir {params.imecDir} --streamID {wildcards.stream} --outDir {params.outDir} > {log} 2>&1
+        touch {output.flag}
+        '''
 
-# rule doBombcell:
+# rule doBombcell: #TODO
 

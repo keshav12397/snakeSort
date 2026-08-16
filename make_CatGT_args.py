@@ -15,8 +15,15 @@ def getBadChansSI(runDir,s,nSlices = 1,sliceSecs = 5):
     #once per bird and reuse the cached result on every later call (incl. later
     #dredge/kilosort steps) instead of re-running detect_bad_channels each time.
     badchans_path = runDir / f"imec{s}_bad_channels.json"
+    #also echo to pass_2/{bird} (runDir is {workingDir}/rawData/{bird}, so this
+    #mirrors that layout) so motion-correction/kilosort code, which works off
+    #pass_2 rather than rawData, can read bad chans from wherever it's already
+    #looking instead of needing to know about the rawData path too
+    pass2_badchans_path = runDir.parent.parent / "pass_2" / runDir.name / f"imec{s}_bad_channels.json"
     if badchans_path.exists():
         cached = json.loads(badchans_path.read_text())
+        pass2_badchans_path.parent.mkdir(parents=True, exist_ok=True)
+        pass2_badchans_path.write_text(json.dumps(cached))
         return cached["badIDs"], cached["badidx"], cached["catGTBad"]
 
     allIMdirs =  [p for p in runDir.rglob("*") if p.is_dir() and p.name.endswith(f'imec{s}')]
@@ -46,11 +53,14 @@ def getBadChansSI(runDir,s,nSlices = 1,sliceSecs = 5):
 
     #persist so later calls (this bird/stream, or later dredge/kilosort steps)
     #can read these back in instead of recomputing
-    badchans_path.write_text(json.dumps({
+    result = {
         "badIDs": np.asarray(badIDs).tolist(),
         "badidx": np.asarray(badidx).tolist(),
         "catGTBad": catGTBad,
-    }))
+    }
+    badchans_path.write_text(json.dumps(result))
+    pass2_badchans_path.parent.mkdir(parents=True, exist_ok=True)
+    pass2_badchans_path.write_text(json.dumps(result))
 
     return badIDs,badidx,catGTBad
 
