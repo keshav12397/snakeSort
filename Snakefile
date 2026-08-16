@@ -5,6 +5,7 @@ import pandas as pd
 bird = config['birdName'] 
 workingDir = config['workingDir']
 rigDir = config['rigDir']
+awsAddrPath = config['awsAddrPath']
 
 #def checkInputJSON(configfile):
 
@@ -29,6 +30,7 @@ rule all:
 
 
 rule transferFiles:
+    # Move files from my rig computer to starling, this is configured as an SMB drive in rclone 
     params:
         src = f"{rigDir}/{{bird}}/" ##TODO have to remount when i switch rig computers
     output:
@@ -43,6 +45,8 @@ rule transferFiles:
         touch {output.flag}
         '''
 checkpoint makeMetaDf:
+    #Now done transferring, parse all data files and decide the order based on 
+    #the _d value, gX and tX. also gets the probe numbers 
     input:
         flag = f"{workingDir}/rawData/{{bird}}/transfer_done",
         script = "make_MetaDF.py",
@@ -54,13 +58,14 @@ checkpoint makeMetaDf:
         'python make_MetaDF.py {params.rawdir}'
 
 def getRunsForBird(bird):
-    #this gets the output as defined in the makeMetaDf function which is defined as a checkpoint- this is the path 
+    #parse out metadf to make arguements for catgt -
     checkpoint_output = checkpoints.makeMetaDf.get(bird=bird).output.metadf
     df = pd.read_csv(checkpoint_output)
     return df["run_id"].unique().tolist()
 
 
 rule runCatGT:
+    #run pass 1 cat gt
     input:
        metadf = f"{workingDir}/rawData/{{bird}}/metaDF.csv",
        script = "make_CatGT_args.py",
@@ -160,6 +165,7 @@ def get_stream_ids(wildcards):
     return get_stream_ids_for_bird(wildcards.bird)
 
 rule runSupercat:
+    #EITHER 1) run supercat if multiple runs, OR 2) just copy data to a pass2 directory, this simplifies all the downstream steps by keeping it in a consistent directory 
     input:
         flags = get_pass1_flags,
         script = "make_SuperCat_args.py",
@@ -172,7 +178,7 @@ rule runSupercat:
         streamIDs = get_stream_ids,
         runcount = lambda wc: len(getRunsForBird(wc.bird))
     log:
-        f"{workingDir}/logs/{{bird}}_supercat.log" #this log will not print anyhting thoi
+        f"{workingDir}/logs/{{bird}}_supercat.log" #this will only print something if youre just transferring files, supercat log is written in catgt.log 
     shell:
         '''
         set -euo pipefail
@@ -203,7 +209,7 @@ rule runSupercat:
         '''
 
 rule backupAndDeleteData:
-    #nothing will the touch the raw data its now safe to transfer and delete pass 1 
+    #nothing will the touch the raw data its now safe to back up to AWS and delete pass 1 to save space on the SSD. 
     input:
         flag = f"{workingDir}/pass_2/{bird}/supercat_done" 
     output:
@@ -212,10 +218,10 @@ rule backupAndDeleteData:
         f"/home/kbsuresh/.aws/logs/{bird}_awsTransferlog"
     shell:
         '''
-        aws s3 sync {workingDir}/rawData/{bird}  $(cat /home/kbsuresh/.aws/addr)/NpxRawRecordings/{bird}/ --storage-class DEEP_ARCHIVE --size-only --no-progress |& tee -a {log}
+        aws s3 sync {workingDir}/rawData/{bird}  $(cat {awsAddrPath})/NpxRawRecordings/{bird}/ --storage-class DEEP_ARCHIVE --size-only --no-progress |& tee -a {log}
         touch {output.flag}
         '''
-        #"rm -r {workingD}"
+        #"rm -r {workingD}" #TODO add back in delete
 
 def get_bad_chans_path(wildcards):
     #getBadChansSI (make_CatGT_args.py) echoes its cached bad-channels json here
@@ -229,6 +235,7 @@ def get_dredge_flags(wildcards):
     )
 
 rule doDredge:
+    #load data into spikeinterface, find+localize peaks and save dredge motion estimate to pickle.
     input:
         flag = f"{workingDir}/pass_2/{{bird}}/supercat_done",
         script = "make_DredgeFiles.py",
@@ -253,6 +260,7 @@ def get_kilosort_flags(wildcards):
     )
 
 rule runKilosort:
+    #now that I have my dredge motion estimate i can actually kilosort 
     input:
         motion = f"{workingDir}/pass_2/{{bird}}/imec{{stream}}_full_motion.p",
         #runKilosort.py imports loadBadChanIDs from make_DredgeFiles.py, so a

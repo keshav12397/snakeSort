@@ -1,7 +1,7 @@
 birdName: "Lav69"
 workingDir: "/mnt/work0/kbsuresh"
 rigDir: "ksrig:ks_rig"
-
+awsAddrPath: "/home/kbsuresh/.aws/addr" 
 
 catGTparams:
   CATGTPATH: "/home/kbsuresh/snakeSort/CatGT-linux/runit.sh" # abs path
