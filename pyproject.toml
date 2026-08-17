@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "snakesort"
 version = "0.1.0"
-description = "Snakemake pipeline for Neuropixels preprocessing: rig transfer -> CatGT -> supercat -> dredge motion estimation -> Kilosort4"
+description = "Snakemake pipeline for Neuropixels preprocessing
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
@@ -15,6 +15,7 @@ dependencies = [
     "matplotlib>=3.8",
     "spikeinterface[full]~=0.104.8",
     "kilosort~=4.1.7",
+    "bombcell @ git+https://github.com/keshav12397/bombcell.git<ks_stable>",
 ]
 
 [tool.setuptools]
@@ -24,4 +25,5 @@ py-modules = [
     "make_MetaDF",
     "make_SuperCat_args",
     "runKilosort",
+    "runBombcell",
 ]

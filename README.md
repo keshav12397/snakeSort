@@ -12,7 +12,7 @@ transferFiles (rclone)
   -> runCatGT        [per run]
   -> runSupercat
       -> backupAndDeleteData (raw data -> S3 Deep Archive)
-      -> doDredge      [per stream] -> runKilosort [per stream]
+      -> doDredge      [per stream] -> runKilosort [per stream] -> runBombcell [per stream]
 ```
 
 Bad channels are detected once per bird/stream (cached as `imec{stream}_bad_channels.json`) and reused by every downstream step instead of being recomputed.
@@ -54,7 +54,3 @@ snakemake -n              # dry run - see what would execute
 ```
 
 Logs for each rule land in `{workingDir}/logs/`.
-
-## Not yet wired up
-
-- `doBombcell` — stubbed, not implemented.

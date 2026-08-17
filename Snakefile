@@ -19,7 +19,7 @@ def all_targets(wildcards):
     return [
         f"{workingDir}/pass_2/{bird}/awsdone",
         *expand(
-            f"{workingDir}/pass_2/{bird}/imec{{stream}}_ksdone",
+            f"{workingDir}/pass_2/{bird}/imec{{stream}}_bcdone",
             stream=get_stream_ids_for_bird(bird).split(",")
         )
     ]
@@ -331,5 +331,33 @@ rule runKilosort:
         touch {output.flag}
         '''
 
-# rule doBombcell: #TODO
+def get_bombcell_flags(wildcards):
+    streams = get_stream_ids(wildcards).split(",")
+    return expand(
+        f"{workingDir}/pass_2/{{bird}}/imec{{stream}}_bcdone",
+        bird=wildcards.bird, stream=streams
+    )
 
+rule doBombcell:
+    #run bombcell QC on the kilosort output for this stream
+    input:
+        flag = f"{workingDir}/pass_2/{{bird}}/imec{{stream}}_ksdone",
+        script = "runBombcell.py",
+    params:
+        outDir = f"{workingDir}/pass_2/{{bird}}",
+    output:
+        flag = f"{workingDir}/pass_2/{{bird}}/imec{{stream}}_bcdone"
+    log:
+        f"{workingDir}/logs/{{bird}}_imec{{stream}}_bombcell.log"
+    shell:
+        '''
+        set -euo pipefail
+        exec 3>&1 4>&2
+        exec > {log} 2>&1
+        set -x
+        python runBombcell.py --streamID {wildcards.stream} --outDir {params.outDir}
+        set +x
+        exec 1>&3 2>&4
+        bash append_log.sh {masterLog} "doBombcell bird={wildcards.bird} stream={wildcards.stream}" {log}
+        touch {output.flag}
+        '''
