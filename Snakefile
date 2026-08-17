@@ -2,10 +2,11 @@ configfile: "config.yaml"
 import pandas as pd
 
 
-bird = config['birdName'] 
+bird = config['birdName']
 workingDir = config['workingDir']
 rigDir = config['rigDir']
 awsAddrPath = config['awsAddrPath']
+masterLog = f"{bird}_master.log"  # relative - lands wherever `snakemake` is invoked from
 
 #def checkInputJSON(configfile):
 
@@ -41,7 +42,13 @@ rule transferFiles:
         '''
         set -euo pipefail
         mkdir -p {workingDir}/rawData/{wildcards.bird}
-        rclone copy {params.src} {workingDir}/rawData/{wildcards.bird} --transfers 8 -v --stats 10s 2>&1 | tee {log}
+        exec 3>&1 4>&2
+        exec > >(tee {log}) 2>&1
+        set -x
+        rclone copy {params.src} {workingDir}/rawData/{wildcards.bird} --transfers 8 -v --stats 10s
+        set +x
+        exec 1>&3 2>&4
+        bash append_log.sh {masterLog} "transferFiles bird={wildcards.bird}" {log}
         touch {output.flag}
         '''
 checkpoint makeMetaDf:
@@ -54,8 +61,19 @@ checkpoint makeMetaDf:
         metadf =  f"{workingDir}/rawData/{{bird}}/metaDF.csv"
     params:
         rawdir = f"{workingDir}/rawData/{{bird}}"
+    log:
+        f"{workingDir}/logs/{{bird}}_makeMetaDf.log"
     shell:
-        'python make_MetaDF.py {params.rawdir}'
+        '''
+        set -euo pipefail
+        exec 3>&1 4>&2
+        exec > {log} 2>&1
+        set -x
+        python make_MetaDF.py {params.rawdir}
+        set +x
+        exec 1>&3 2>&4
+        bash append_log.sh {masterLog} "makeMetaDf bird={wildcards.bird}" {log}
+        '''
 
 def getRunsForBird(bird):
     #parse out metadf to make arguements for catgt -
@@ -86,6 +104,10 @@ rule runCatGT:
         '''
         set -euo pipefail
         mkdir -p {params.dest}
+        exec 3>&1 4>&2
+        exec > {log} 2>&1
+        set -x
+
         IFS=$'\t' read -r gtlist chnexcl prb < <(
         python make_CatGT_args.py {input.metadf} --run {wildcards.run})
 
@@ -123,8 +145,13 @@ rule runCatGT:
         -zerofillmax={params.zerofillmax} \\
         -ap -ni -prb_fld -pass1_force_ni_ob_bin -out_prb_fld \\
         )
-        > {log} 2>&1
-        cp {params.dest}/'CatGT.log' {params.dest}/{{bird}}_{{run}}_pass1CatGT.log
+
+        cp {params.dest}/'CatGT.log' {params.dest}/{wildcards.bird}_{wildcards.run}_pass1CatGT.log
+
+        set +x
+        exec 1>&3 2>&4
+        bash append_log.sh {masterLog} "runCatGT bird={wildcards.bird} run={wildcards.run}" {log}
+        bash append_log.sh {masterLog} "runCatGT bird={wildcards.bird} run={wildcards.run} (CatGT.log)" {params.dest}/{wildcards.bird}_{wildcards.run}_pass1CatGT.log
         touch {output.flag}
         '''
 
@@ -183,6 +210,9 @@ rule runSupercat:
         '''
         set -euo pipefail
         mkdir -p {params.pass2dir}
+        exec 3>&1 4>&2
+        exec > {log} 2>&1
+        set -x
 
         if [ {params.runcount} -gt 1 ]; then
             supercat_arg=$(python make_SuperCat_args.py {params.pass1dir})
@@ -194,10 +224,10 @@ rule runSupercat:
                 -prb={params.streamIDs} \\
                 -supercat_trim_edges \\
                 -dest={params.pass2dir} \\
-                ) > {log} 2>&1
+                )
 
         else
-            echo "Single run — copying pass_1 output directly" > {log}
+            echo "Single run — copying pass_1 output directly"
             cp -r {params.pass1dir}/. {params.pass2dir}/
         fi
 
@@ -205,6 +235,9 @@ rule runSupercat:
         #per-stream rules (dredge/kilosort/etc) can read it straight from pass_2
         echo "{params.streamIDs}" > {params.pass2dir}/stream_ids.txt
 
+        set +x
+        exec 1>&3 2>&4
+        bash append_log.sh {masterLog} "runSupercat bird={wildcards.bird}" {log}
         touch {output.flag}
         '''
 
@@ -218,7 +251,14 @@ rule backupAndDeleteData:
         f"/home/kbsuresh/.aws/logs/{bird}_awsTransferlog"
     shell:
         '''
-        aws s3 sync {workingDir}/rawData/{bird}  $(cat {awsAddrPath})/NpxRawRecordings/{bird}/ --storage-class DEEP_ARCHIVE --size-only --no-progress |& tee -a {log}
+        set -euo pipefail
+        exec 3>&1 4>&2
+        exec > >(tee -a {log}) 2>&1
+        set -x
+        aws s3 sync {workingDir}/rawData/{bird}  $(cat {awsAddrPath})/NpxRawRecordings/{bird}/ --storage-class DEEP_ARCHIVE --size-only --no-progress
+        set +x
+        exec 1>&3 2>&4
+        bash append_log.sh {masterLog} "backupAndDeleteData bird={bird}" {log}
         touch {output.flag}
         '''
         #"rm -r {workingD}" #TODO add back in delete
@@ -249,7 +289,13 @@ rule doDredge:
     shell:
         '''
         set -euo pipefail
-        python make_DredgeFiles.py --streamID {wildcards.stream} --badChansPath {params.badChansPath} --outDir {params.outDir} > {log} 2>&1
+        exec 3>&1 4>&2
+        exec > {log} 2>&1
+        set -x
+        python make_DredgeFiles.py --streamID {wildcards.stream} --badChansPath {params.badChansPath} --outDir {params.outDir}
+        set +x
+        exec 1>&3 2>&4
+        bash append_log.sh {masterLog} "doDredge bird={wildcards.bird} stream={wildcards.stream}" {log}
         '''
 
 def get_kilosort_flags(wildcards):
@@ -275,7 +321,13 @@ rule runKilosort:
     shell:
         '''
         set -euo pipefail
-        python runKilosort.py --streamID {wildcards.stream} --outDir {params.outDir} > {log} 2>&1
+        exec 3>&1 4>&2
+        exec > {log} 2>&1
+        set -x
+        python runKilosort.py --streamID {wildcards.stream} --outDir {params.outDir}
+        set +x
+        exec 1>&3 2>&4
+        bash append_log.sh {masterLog} "runKilosort bird={wildcards.bird} stream={wildcards.stream}" {log}
         touch {output.flag}
         '''
 

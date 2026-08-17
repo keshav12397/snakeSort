@@ -111,7 +111,7 @@ def calcPeaksSI(streamID, badChansPath, outDir):
         'histogram_time_smooth_s': 2,
         'max_disp_um': 50,
     }
-    SI_JOB_KWARGS = dict(n_jobs=-1, chunk_duration="5s")
+    SI_JOB_KWARGS = dict(n_jobs=-10, chunk_duration="5s")
 
     peaks = detect_peaks(recording=rec, **DETECT_KWARGS, **SI_JOB_KWARGS)
 

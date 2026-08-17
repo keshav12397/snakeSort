@@ -1,0 +1,13 @@
+
+===== transferFiles bird=Lav69 -- 2026-08-17 13:35:35 =====
++ rclone copy ksrig:ks_rig/Lav69/ /mnt/work0/kbsuresh/rawData/Lav69 --transfers 8 -v --stats 10s
+2026/08/17 13:35:35 INFO  : There was nothing to transfer
+2026/08/17 13:35:35 INFO  : 
+Transferred:   	          0 B / 0 B, -, 0 B/s, ETA -
+Elapsed time:         0.0s
+
++ set +x
+
+===== makeMetaDf bird=Lav69 -- 2026-08-17 13:35:35 =====
++ python make_MetaDF.py /mnt/work0/kbsuresh/rawData/Lav69
++ set +x
