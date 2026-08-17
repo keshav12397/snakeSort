@@ -11,7 +11,7 @@ import spikeinterface.full as si
 import spikeinterface.extractors as se
 from spikeinterface.sortingcomponents.peak_detection import detect_peaks
 from spikeinterface.sortingcomponents.peak_localization import localize_peaks
-from spikeinterface.sortingcomponents.motion import estimate_motion
+from spikeinterface.sortingcomponents.motion import estimate_motion, correct_motion_on_peaks
 
 
 def loadBadChanIDs(badChansPath):
@@ -42,6 +42,32 @@ def getPeakFallOff(peaks, fs, peak_locs, bin_sec=3, n_depth_bins=5, ignore_um=15
     binned_z = (binned - binned.mean(0)) / binned.std(0)
 
     return binned_z, t_edges, d_edges
+
+
+def plotPeaks(imecDir, streamID, outDir, rec, fs, peaks, peak_locs, motion):
+    new_locs = correct_motion_on_peaks(peaks=peaks, peak_locations=peak_locs, motion=motion, recording=rec)
+
+    motion_y = motion.displacement[0] + motion.spatial_bins_um
+    motion_x = motion.temporal_bins_s[0]
+
+    fig, axs = plt.subplots(ncols=2, nrows=1, figsize=(20, 10))
+
+    t0, t1 = np.quantile(peaks['sample_index'], [0, 1])
+    #original spikes w dredge motion vectors
+    axs[0].scatter(x=peaks[::5]['sample_index'] / fs, y=peak_locs[::5]['y'], c=peaks[::5]['amplitude'], cmap='inferno', s=0.5, alpha=0.7)
+    axs[0].plot(motion_x - motion_x.min(), motion_y, linewidth=5)
+    axs[0].set_title(f'{imecDir.name}, stream = imec{streamID}')
+    axs[0].set_xlim(t0 / fs, t1 / fs)
+
+    ##dredge corrected spikes
+    axs[1].scatter(x=peaks[::5]['sample_index'] / fs, y=new_locs[::5]['y'], c=peaks[::5]['amplitude'], cmap='inferno', s=0.5, alpha=0.7)
+    axs[1].set_yticks([])
+    axs[1].set_title('Corrected Peaks')
+    axs[1].set_xlim(t0 / fs, t1 / fs)
+
+    fig.tight_layout()
+    fig.savefig(outDir / f'peaksPlot_imec{streamID}.png')
+    plt.close(fig)
 
 
 def calcPeaksSI(streamID, badChansPath, outDir):
@@ -122,6 +148,8 @@ def calcPeaksSI(streamID, badChansPath, outDir):
     motion_path = outDir / f'imec{streamID}_full_motion.p'
     with open(motion_path, 'wb') as f:
         pickle.dump(motion, f)
+
+    plotPeaks(imecDir, streamID, outDir, rec, fs, peaks, peak_locs, motion)
 
     return motion_path
 
