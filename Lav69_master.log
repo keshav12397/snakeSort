@@ -1910,3 +1910,7 @@ kilosort.run_kilosort: cluster merge:         sys    27.1 GB  |  gpu    3.2 GB
 kilosort.run_kilosort: postprocessing:        sys    16.3 GB  |  gpu    0.0 GB
 kilosort.run_kilosort: ********************************************************
 + set +x
+
+===== makePass1Offsets bird=Lav69 -- 2026-08-17 21:02:38 =====
++ python make_Pass1Offsets.py --metadf /mnt/work0/kbsuresh/rawData/Lav69/metaDF.csv --pass1dir /mnt/work0/kbsuresh/pass_1/Lav69 --outPath /mnt/work0/kbsuresh/pass_2/Lav69/pass1_offsets.csv
++ set +x

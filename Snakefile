@@ -18,6 +18,7 @@ def all_targets(wildcards):
     #and the makeMetaDf checkpoint it depends on are actually defined.
     return [
         f"{workingDir}/pass_2/{bird}/awsdone",
+        f"{workingDir}/pass_2/{bird}/nwbdone",
         *expand(
             f"{workingDir}/pass_2/{bird}/imec{{stream}}_bcdone",
             stream=get_stream_ids_for_bird(bird).split(",")
@@ -345,6 +346,7 @@ rule doBombcell:
         script = "runBombcell.py",
     params:
         outDir = f"{workingDir}/pass_2/{{bird}}",
+        chunkSizeSec = config['bombcellParams']['chunkSizeSec'],
     output:
         flag = f"{workingDir}/pass_2/{{bird}}/imec{{stream}}_bcdone"
     log:
@@ -355,9 +357,74 @@ rule doBombcell:
         exec 3>&1 4>&2
         exec > {log} 2>&1
         set -x
-        python runBombcell.py --streamID {wildcards.stream} --outDir {params.outDir}
+        python runBombcell.py --streamID {wildcards.stream} --outDir {params.outDir} --chunkSizeSec {params.chunkSizeSec}
         set +x
         exec 1>&3 2>&4
         bash append_log.sh {masterLog} "doBombcell bird={wildcards.bird} stream={wildcards.stream}" {log}
+        touch {output.flag}
+        '''
+
+rule makePass1Offsets:
+    #join metaDF.csv with each run/g_ind's CatGT ct_offsets.txt into one pass1_offsets.csv - the piece initNWB needs to align pass-1 time bases to the mic timeline
+    input:
+        flags = get_pass1_flags,
+        script = "make_Pass1Offsets.py",
+    params:
+        metadf = f"{workingDir}/rawData/{{bird}}/metaDF.csv",
+        pass1dir = f"{workingDir}/pass_1/{{bird}}",
+    output:
+        f"{workingDir}/pass_2/{{bird}}/pass1_offsets.csv"
+    log:
+        f"{workingDir}/logs/{{bird}}_pass1Offsets.log"
+    shell:
+        '''
+        set -euo pipefail
+        exec 3>&1 4>&2
+        exec > {log} 2>&1
+        set -x
+        python make_Pass1Offsets.py --metadf {params.metadf} --pass1dir {params.pass1dir} --outPath {output}
+        set +x
+        exec 1>&3 2>&4
+        bash append_log.sh {masterLog} "makePass1Offsets bird={wildcards.bird}" {log}
+        '''
+
+rule makeNWB:
+    #pack electrodes, units, bombcell QC, and mic/DAF/syllable timeseries into one NWB file per bird
+    input:
+        bcflags = get_bombcell_flags,
+        offsets = f"{workingDir}/pass_2/{{bird}}/pass1_offsets.csv",
+        scripts = ["make_NWB.py", "nwb_signals.py", "nwb_units.py", "make_DredgeFiles.py", "readSGLX.py"],
+    params:
+        outDir = f"{workingDir}/pass_2/{{bird}}",
+        rawDataDir = f"{workingDir}/rawData/{{bird}}",
+        streamIDs = get_stream_ids,
+        micLine = config['nwbParams']['micLine'],
+        dafLine = config['nwbParams']['dafLine'],
+        onlineDetectMode = config['nwbParams']['onlineDetectMode'],
+        onlineDetectLines = ",".join(str(x) for x in config['nwbParams'].get('onlineDetectLines', [])),
+        saveDir = config['nwbParams']['saveDir'],
+        tprimePath = config['nwbParams']['tprimePath'],
+        sessionDescription = config['nwbParams']['animalInfo']['sessionDescription'],
+        sex = config['nwbParams']['animalInfo']['sex'],
+        dateOfBirth = config['nwbParams']['animalInfo']['dateOfBirth'],
+        description = config['nwbParams']['animalInfo']['description'],
+    output:
+        flag = f"{workingDir}/pass_2/{{bird}}/nwbdone"
+    log:
+        f"{workingDir}/logs/{{bird}}_makeNWB.log"
+    shell:
+        '''
+        set -euo pipefail
+        exec 3>&1 4>&2
+        exec > {log} 2>&1
+        set -x
+        python make_NWB.py --outDir {params.outDir} --rawDataDir {params.rawDataDir} --saveDir {params.saveDir} \\
+            --tprimePath {params.tprimePath} --streamIDs {params.streamIDs} --micLine {params.micLine} --dafLine {params.dafLine} \\
+            --onlineDetectMode {params.onlineDetectMode} --onlineDetectLines "{params.onlineDetectLines}" \\
+            --subjectID {wildcards.bird} --sessionDescription "{params.sessionDescription}" --sex {params.sex} \\
+            --dateOfBirth {params.dateOfBirth} --description "{params.description}"
+        set +x
+        exec 1>&3 2>&4
+        bash append_log.sh {masterLog} "makeNWB bird={wildcards.bird}" {log}
         touch {output.flag}
         '''
