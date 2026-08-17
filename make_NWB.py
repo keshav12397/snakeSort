@@ -311,6 +311,13 @@ def packNCAFthings(rawDataDir: Path, finalOffsetDF):
     ncafparamTI.add_column('nCAF_Mode', description='whether feedback is given below threshold(push up) or above threshold(push down)')
     ncafparamTI.add_column('Targ_unit', description='targeted template IDX from baseline spike sorting')
 
+    #pass1_offsets.csv is metaDF.csv joined with ct_offsets.txt, so there's no
+    #single 'file' column - match against whichever imec{s}_filename column is
+    #present instead (any one stream's filename carries the run/g/t identifiers
+    #shared across every stream in that row, so this works regardless of which
+    #probe's oss_input/params.txt we're matching)
+    imecFileCol = next(c for c in finalOffsetDF.columns if c.startswith('imec') and c.endswith('_filename'))
+
     finalParam = pd.DataFrame([])
     if len(paramPaths) > 0:
         print('Found nCAF param files at', paramPaths)
@@ -323,7 +330,7 @@ def packNCAFthings(rawDataDir: Path, finalOffsetDF):
             runName = runOptions[0]
             outdf['run'] = runName
             holdparams.append(outdf)
-            useIDXes = finalOffsetDF.index[finalOffsetDF["file"].astype(str).str.contains(runName, regex=False)].tolist()
+            useIDXes = finalOffsetDF.index[finalOffsetDF[imecFileCol].astype(str).str.contains(runName, regex=False)].tolist()
             if len(useIDXes) == 0:
                 continue
 

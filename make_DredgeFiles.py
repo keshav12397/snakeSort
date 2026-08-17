@@ -26,7 +26,13 @@ def findImecDir(outDir, streamID):
     #done here at actual run time (not as a Snakemake params function) since
     #supercat's output folder-naming isn't worth hardcoding, and this dir may not
     #exist yet when Snakemake evaluates params during DAG-building
-    matches = [p for p in Path(outDir).rglob("*") if p.is_dir() and p.name.endswith(f"imec{streamID}")]
+    #excludes our own ks_imec{s}/bombcell output dirs, which also end in
+    #imec{streamID} and otherwise collide with the real CatGT folder once
+    #kilosort/bombcell have run
+    matches = [
+        p for p in Path(outDir).rglob("*")
+        if p.is_dir() and p.name.endswith(f"imec{streamID}") and not p.name.startswith("ks_")
+    ]
     return matches[0]
 
 
