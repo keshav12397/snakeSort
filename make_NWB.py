@@ -150,6 +150,21 @@ def packDigitalLines(digArr, dLineList, fs):
     )
 
 
+def packSyncEdges(imecDir: Path, niDir: Path):
+    #same sync-edge xd files doTPrimeOneDir passes to TPrime as
+    #-fromstream=/-tostream= - one edge time (seconds) per line, plain text
+    imecXdPath = next(imecDir.glob('*.ap.xd*'))
+    nidqXdPath = next(niDir.glob('*.nidq.xd*'))
+    imecEdges = np.loadtxt(imecXdPath)
+    nidqEdges = np.loadtxt(nidqXdPath)
+    #Series indices default to 0..len-1, so combining via the DataFrame
+    #constructor aligns on the union of indices and pads the shorter one with NaN
+    return pd.DataFrame({
+        'imec_sync_sec': pd.Series(imecEdges),
+        'nidq_sync_sec': pd.Series(nidqEdges),
+    })
+
+
 def packDeviceAndElectrodes(nwbfile: NWBFile, outDir: Path, imecStreams: list):
     #resolved per-stream (rather than one shared imecDir) - each synthetic
     #sepShanks stream ID already disambiguates across probes, so this handles
@@ -192,17 +207,27 @@ def packDeviceAndElectrodes(nwbfile: NWBFile, outDir: Path, imecStreams: list):
 
 
 def packUnits(nwbfile: NWBFile, outDir: Path, imecStreams: list, tprime_path: Path, nTopChans=10, keep_BCthresh=0.8, DEBUG=False):
+    syncMod = nwbfile.create_processing_module(
+        name="Sync Edges",
+        description="NI and IMEC sync pulse edge times (seconds) per stream, from the same xd files TPrime aligns spike times against"
+    )
+
     nTotalUnits = 0
     nGoodUnits = 0
     nMissedUnits = 0
     nwb_id = 0
     for stream in imecStreams:
         ksDir = outDir / f'ks_imec{stream}'
+        imecDir = findImecDir(outDir, stream)
+        niDir = imecDir.parent  # CatGT always writes the nidq tcat bin one level up from each probe's imec folder
+
         corrSTPath = ksDir / 'st_fixed.npy'
         if not corrSTPath.exists():  # run TPrime if corrected spike times don't exist
-            imecDir = findImecDir(outDir, stream)
-            niDir = imecDir.parent  # CatGT always writes the nidq tcat bin one level up from each probe's imec folder
             nwb_units.doTPrimeOneDir(ksDir, imecDir, niDir, tprime_path)
+
+        syncDF = packSyncEdges(imecDir, niDir)
+        syncTable = DynamicTable.from_dataframe(syncDF, name=f'sync_edges_imec{stream}')
+        syncMod.add(syncTable)
 
         corr_st = np.load(corrSTPath)  # TPrimed spike times aligned to mic stream
         raw_st = np.load(ksDir / 'spike_times.npy')
