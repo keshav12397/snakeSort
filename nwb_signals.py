@@ -104,7 +104,9 @@ def decode_port_labels(digArr, lines, settle_samples=2, min_gap_samples=20):
     lines : list-like
         Digital lines in bit order. First line is LSB, second line is next bit, etc.
     settle_samples : int
-        Number of samples after event onset to read the port value.
+        Window (in samples) after event onset, inclusive, to take the max port value
+        over - guards against reading a fixed offset that lands after a short pulse
+        has already dropped back to 0.
     min_gap_samples : int
         Minimum gap between separate port events.
 
@@ -137,10 +139,11 @@ def decode_port_labels(digArr, lines, settle_samples=2, min_gap_samples=20):
     keep = np.r_[True, np.diff(event_idx) >= min_gap_samples]
     event_idx = event_idx[keep]
 
-    # read label slightly after onset, in case bits settle over 1-2 samples
-    read_idx = np.minimum(event_idx + settle_samples, port_value.size - 1)
-
-    labels = port_value[read_idx].astype(int)
+    # take the max port value in the settle window after onset, rather than a
+    # single fixed-offset sample, so a pulse narrower than settle_samples doesn't
+    # get read after it's already dropped back to 0
+    window_end = np.minimum(event_idx + settle_samples + 1, port_value.size)
+    labels = np.array([port_value[s:e].max() for s, e in zip(event_idx, window_end)]).astype(int)
     times_samples = event_idx
 
     return labels, times_samples

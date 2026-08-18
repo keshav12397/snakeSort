@@ -1,4 +1,4 @@
-configfile: "config_lav71.yaml"
+configfile: "config.yaml"
 import pandas as pd
 
 

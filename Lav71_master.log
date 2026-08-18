@@ -13227,3 +13227,30 @@ True
 True
 True
 + set +x
+
+===== makeNWB bird=Lav71 -- 2026-08-18 12:37:55 =====
++ python make_NWB.py --outDir /mnt/work0/kbsuresh/pass_2/Lav71 --rawDataDir /mnt/work0/kbsuresh/rawData/Lav71 --saveDir /mnt/work0/kbsuresh/nwb --tprimePath /home/kbsuresh/TPrime/TPrime-linux/runit.sh --streamIDs 0 --micLine 0 --dafLine 1 --onlineDetectMode port --onlineDetectLines 5,6,7 --subjectID Lav71 --sessionDescription Lav69_pCAF --sex M --dateOfBirth 2026-03-30 --description 'Tang59-M x Tang26-F'
+/home/kbsuresh/.conda/envs/dartsort/lib/python3.14/site-packages/pynwb/file.py:507: UserWarning: Date is missing timezone information. Updating to local timezone.
+  args_to_set['session_start_time'] = _add_missing_timezone(session_start_time)
+since you passed raw data dir im assuming you want to find nCAF params/inputs
+[]
+Adding Units:   0%|          | 0/310 [00:00<?, ?it/s]Adding Units:   2%|▏         | 6/310 [00:00<00:06, 47.12it/s]Adding Units:   5%|▍         | 14/310 [00:00<00:04, 63.83it/s]Adding Units:   7%|▋         | 23/310 [00:00<00:04, 68.83it/s]Adding Units:  10%|▉         | 30/310 [00:00<00:04, 65.40it/s]Adding Units:  12%|█▏        | 37/310 [00:00<00:04, 62.58it/s]Adding Units:  14%|█▍        | 44/310 [00:00<00:04, 57.10it/s]Adding Units:  16%|█▌        | 50/310 [00:00<00:05, 48.43it/s]Adding Units:  18%|█▊        | 57/310 [00:01<00:04, 52.71it/s]Adding Units:  20%|██        | 63/310 [00:01<00:05, 47.62it/s]Adding Units:  22%|██▏       | 68/310 [00:01<00:05, 44.82it/s]Adding Units:  24%|██▎       | 73/310 [00:01<00:06, 36.72it/s]Adding Units:  25%|██▍       | 77/310 [00:01<00:06, 33.40it/s]Adding Units:  26%|██▌       | 81/310 [00:01<00:06, 32.99it/s]Adding Units:  30%|███       | 93/310 [00:02<00:06, 34.22it/s]Adding Units:  34%|███▍      | 105/310 [00:02<00:04, 49.03it/s]Adding Units:  40%|████      | 124/310 [00:02<00:02, 68.79it/s]Adding Units:  43%|████▎     | 132/310 [00:02<00:02, 70.08it/s]Adding Units:  46%|████▌     | 143/310 [00:02<00:02, 77.29it/s]Adding Units:  49%|████▉     | 152/310 [00:02<00:02, 72.51it/s]Adding Units:  52%|█████▏    | 160/310 [00:02<00:02, 59.21it/s]Adding Units:  55%|█████▍    | 169/310 [00:03<00:02, 64.20it/s]Adding Units:  57%|█████▋    | 177/310 [00:03<00:02, 63.57it/s]Adding Units:  62%|██████▏   | 191/310 [00:03<00:01, 76.33it/s]Adding Units:  65%|██████▍   | 200/310 [00:03<00:01, 74.44it/s]Adding Units:  67%|██████▋   | 208/310 [00:03<00:01, 59.00it/s]Adding Units:  69%|██████▉   | 215/310 [00:03<00:01, 60.28it/s]Adding Units:  73%|███████▎  | 226/310 [00:03<00:01, 70.27it/s]Adding Units:  75%|███████▌  | 234/310 [00:03<00:01, 71.67it/s]Adding Units:  78%|███████▊  | 242/310 [00:04<00:01, 43.96it/s]Adding Units:  80%|████████  | 248/310 [00:04<00:01, 42.76it/s]Adding Units:  82%|████████▏ | 254/310 [00:04<00:01, 44.71it/s]Adding Units:  84%|████████▍ | 260/310 [00:04<00:01, 47.88it/s]Adding Units:  86%|████████▌ | 266/310 [00:05<00:01, 28.23it/s]Adding Units:  87%|████████▋ | 271/310 [00:05<00:01, 31.21it/s]Adding Units:  89%|████████▉ | 276/310 [00:05<00:01, 24.33it/s]Adding Units:  92%|█████████▏| 284/310 [00:05<00:00, 28.24it/s]Adding Units:  93%|█████████▎| 288/310 [00:06<00:01, 21.50it/s]Adding Units:  94%|█████████▍| 291/310 [00:06<00:01, 15.02it/s]Adding Units:  95%|█████████▍| 294/310 [00:06<00:01, 13.95it/s]Adding Units:  97%|█████████▋| 301/310 [00:07<00:00, 19.25it/s]Adding Units:  98%|█████████▊| 304/310 [00:07<00:00, 19.55it/s]Adding Units:  99%|█████████▉| 307/310 [00:07<00:00, 19.47it/s]Adding Units: 100%|██████████| 310/310 [00:07<00:00, 41.87it/s]
+/home/kbsuresh/.conda/envs/dartsort/lib/python3.14/site-packages/pynwb/file.py:158: UserWarning: Date is missing timezone information. Updating to local timezone.
+  args_to_set['date_of_birth'] = _add_missing_timezone(date_of_birth)
+Done adding 310 units, you have 116.0 good Units and 0 were in clu array but not in the bombcell DFs
+nChan: 3, nFileSamp: 692332426
+*****
+ Mic data added total duration = 288 minutes
+Packing DAFs:   0%|          | 0/378 [00:00<?, ?it/s]Packing DAFs: 100%|██████████| 378/378 [00:00<00:00, 12685.10it/s]
+*****
+ 378 DAFs added
+nChan: 3, nFileSamp: 692332426
+Total Online detections = 
+online_ID                 Count
+-------------------------------
+0                           133
+1                           408
+Packing Online Labels:   0%|          | 0/541 [00:00<?, ?it/s]Packing Online Labels: 100%|██████████| 541/541 [00:00<00:00, 10605.59it/s]
+*****
+ 8 NI digital lines added
++ set +x
