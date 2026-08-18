@@ -1,4 +1,4 @@
-configfile: "config.yaml"
+configfile: "config_lav71.yaml"
 import pandas as pd
 
 
@@ -28,8 +28,6 @@ def all_targets(wildcards):
 rule all:
     input:
         all_targets
-
-
 
 rule transferFiles:
     # Move files from my rig computer to starling, this is configured as an SMB drive in rclone 

@@ -137,6 +137,19 @@ def packOnlineLabels(syllLabels, syllStarts, micSeries, onlineDetectParams):
     return onlinesylled
 
 
+def packDigitalLines(digArr, dLineList, fs):
+    #digArr comes back from get_dig_traces as (nLine, nSamp) - NWB TimeSeries
+    #wants time as the first axis
+    return TimeSeries(
+        name='NIDigitalLines',
+        comments=f'raw NI digital lines {list(dLineList)}, one column per line in that order',
+        data=digArr.T,
+        rate=fs,
+        unit='n/a',
+        starting_time=0.0 / fs,
+    )
+
+
 def packDeviceAndElectrodes(nwbfile: NWBFile, outDir: Path, imecStreams: list):
     #resolved per-stream (rather than one shared imecDir) - each synthetic
     #sepShanks stream ID already disambiguates across probes, so this handles
@@ -413,7 +426,8 @@ def initNWB(outDir: Path, animalInfo: dict, micLine: int, dafLine: int, onlineDe
             description=f"params and inputs used for ncaf, ossinputs can be found = {ossInputPaths}"
         )
 
-        NCAF_mod.add(nCAF_paramTI)
+        if len(nCAF_paramTI) > 0:
+            NCAF_mod.add(nCAF_paramTI)
         if len(fullParamDF) > 0:
             paramTable = DynamicTable.from_dataframe(fullParamDF, name='OSS params')
             NCAF_mod.add(paramTable)
@@ -445,14 +459,21 @@ def initNWB(outDir: Path, animalInfo: dict, micLine: int, dafLine: int, onlineDe
     daf_signal = NI[dafLine, :].ravel()
 
     dafInter = packDAFs(daf_signal, ni_fs, mic_signal)
-    _ = nwbfile.add_time_intervals(dafInter)
+    if len(dafInter) > 0:
+        _ = nwbfile.add_time_intervals(dafInter)
     print(f'*****\n {len(dafInter)} DAFs added')
 
-    digArr, _, _ = nwb_signals.get_dig_traces(niBinPath, 0, maxSec, 'nidq')
+    digArr, dLineList, _, dig_fs = nwb_signals.get_dig_traces(niBinPath, 0, maxSec, 'nidq')
     syllLabels, syllStarts = nwb_signals.getOnlineLabels(digArr, ni_fs, 0, onlineDetectParams)
 
     onlineLabelInter = packOnlineLabels(syllLabels, syllStarts, mic_signal, onlineDetectParams)
-    _ = nwbfile.add_time_intervals(onlineLabelInter)
+    if len(onlineLabelInter) > 0:
+        _ = nwbfile.add_time_intervals(onlineLabelInter)
+
+    if digArr.size > 0:
+        digLinesSeries = packDigitalLines(digArr, dLineList, dig_fs)
+        nwbfile.add_acquisition(digLinesSeries)
+        print(f'*****\n {len(dLineList)} NI digital lines added')
 
     syllabelMod = nwbfile.create_processing_module(
         name="Syllable Labels",

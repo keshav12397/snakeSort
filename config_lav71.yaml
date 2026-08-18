@@ -1,0 +1,29 @@
+birdName: "Lav71"
+workingDir: "/mnt/work0/kbsuresh"
+rigDir: "ksrig:ks_rig"
+awsAddrPath: "/home/kbsuresh/.aws/addr" 
+
+catGTparams:
+  CATGTPATH: "/home/kbsuresh/snakeSort/CatGT-linux/runit.sh" # abs path
+  filtmode: "gblcar"
+  apfilter: "butter,12,300,9000"
+  zerofillmax: "5"
+  sepShanks: False
+
+bombcellParams:
+  chunkSizeSec: -1
+
+nwbParams:
+  micLine: 0 # TODO: NI digital/analog line index for the mic signal
+  dafLine: 1 # TODO: NI line index for the DAF/efference copy signal
+  onlineDetectMode: "port" # one of: pulse, port, none
+  onlineDetectLines: [5, 6, 7] # TODO: NI digital lines carrying online-detect labels
+  saveDir: "/mnt/work0/kbsuresh/nwb" # TODO: where finished .nwb files land
+  tprimePath: "/home/kbsuresh/TPrime/TPrime-linux/runit.sh"
+  animalInfo:
+    sessionDescription: "Lav69_pCAF" # e.g. "Lav69_ncaf"
+    sex: "M" # M or F
+    dateOfBirth: "2026-03-30"
+    description: "Tang59-M x Tang26-F" # e.g. parents/genotype
+
+

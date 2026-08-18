@@ -195,7 +195,7 @@ def get_dig_traces(usepath, t0, t1, streamType):
     rawData = makeMemMapRaw(usepath, meta)
     digArr = ExtractDigital(rawData, firstSamp, lastSamp - 1, dw, dLineList, meta)
 
-    return digArr, firstSamp, srate
+    return digArr, dLineList, firstSamp, srate
 
 
 def get_feedbacks(arr, s0, th=0.02):

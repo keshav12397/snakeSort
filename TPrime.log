@@ -1,0 +1,2 @@
+[Thd 128912025737024 CPU 0 8/18/26 12:25:13.199] Cmdline: TPrime -syncperiod=1.000000 -tostream=/mnt/work0/kbsuresh/pass_2/Lav71/supercat_Lav71_d1.0_g0/Lav71_d1.0_g0_tcat.nidq.xd_2_0_500.txt -fromstream=5,/mnt/work0/kbsuresh/pass_2/Lav71/supercat_Lav71_d1.0_g0/Lav71_d1.0_g0_imec0/Lav71_d1.0_g0_tcat.imec0.ap.xd_384_6_500.txt -events=5,/mnt/work0/kbsuresh/pass_2/Lav71/ks_imec0/st_sec.npy,/mnt/work0/kbsuresh/pass_2/Lav71/ks_imec0/st_fixed.npy
+[Thd 128912025737024 CPU 0 8/18/26 12:25:13.606] 
